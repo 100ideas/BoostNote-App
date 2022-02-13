@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import { Thread, Comment } from '../../interfaces/db/comments'
 import Spinner from '../../../design/components/atoms/Spinner'
 import { mdiArrowLeft } from '@mdi/js'
@@ -12,6 +12,7 @@ import ThreadList from './ThreadList'
 import { useI18n } from '../../lib/hooks/useI18n'
 import { lngKeys } from '../../lib/i18n/types'
 import Button from '../../../design/components/atoms/Button'
+import { listThreadComments } from '../../api/comments/comment'
 
 export type State =
   | { mode: 'list_loading'; thread?: { id: string } }
@@ -43,6 +44,11 @@ export interface Actions {
   createComment: (thread: Thread, message: string) => Promise<void | Error>
   updateComment: (comment: Comment, message: string) => Promise<void | Error>
   deleteComment: (comment: Comment) => Promise<void | Error>
+  addReaction: (comment: Comment, reaction: string) => Promise<void | Error>
+  removeReaction: (
+    comment: Comment,
+    reactionId: string
+  ) => Promise<void | Error>
 }
 
 interface CommentManagerProps extends Actions {
@@ -59,6 +65,8 @@ function CommentManager({
   createComment,
   updateComment,
   deleteComment,
+  addReaction,
+  removeReaction,
   user,
   users,
 }: CommentManagerProps) {
@@ -66,6 +74,19 @@ function CommentManager({
   const usersOrEmpty = useMemo(() => {
     return users != null ? users : []
   }, [users])
+
+  const deleteCommentWithCleanup = useCallback(
+    async (comment: Comment, thread: Thread) => {
+      await deleteComment(comment)
+      // todo: [komediruzecki-2022-02-21] if thread.commentCount is updated properly we can just check the number of comments there
+      listThreadComments({ id: thread.id }).then((comments) => {
+        if (comments.length == 0) {
+          deleteThread(thread)
+        }
+      })
+    },
+    [deleteComment, deleteThread]
+  )
 
   const content = useMemo(() => {
     switch (state.mode) {
@@ -84,8 +105,11 @@ function CommentManager({
                 threads={state.threads}
                 onSelect={(thread) => setMode({ mode: 'thread', thread })}
                 onDelete={deleteThread}
+                user={user}
                 users={usersOrEmpty}
                 updateComment={updateComment}
+                addReaction={addReaction}
+                removeReaction={removeReaction}
               />
               <CommentInput
                 placeholder={'Comment...'}
@@ -119,7 +143,11 @@ function CommentManager({
                 comments={state.comments}
                 className='comment__list'
                 updateComment={updateComment}
-                deleteComment={deleteComment}
+                deleteComment={(comment) =>
+                  deleteCommentWithCleanup(comment, state.thread)
+                }
+                addReaction={addReaction}
+                removeReaction={removeReaction}
                 user={user}
                 users={usersOrEmpty}
               />
@@ -150,14 +178,16 @@ function CommentManager({
     }
   }, [
     state,
-    createThread,
     deleteThread,
-    createComment,
-    updateComment,
-    deleteComment,
-    setMode,
     user,
     usersOrEmpty,
+    updateComment,
+    addReaction,
+    removeReaction,
+    setMode,
+    createThread,
+    deleteCommentWithCleanup,
+    createComment,
   ])
 
   return (
@@ -248,7 +278,7 @@ const Container = styled.div`
   .thread__create {
     display: flex;
     align-items: center;
-    padding: 0px ${({ theme }) => theme.sizes.spaces.df}px;
+    padding: 0 ${({ theme }) => theme.sizes.spaces.df}px;
     margin: ${({ theme }) => theme.sizes.spaces.df}px 0;
     cursor: default;
     color: ${({ theme }) => theme.colors.text.secondary};
@@ -261,7 +291,7 @@ const Container = styled.div`
   }
 
   .thread__new {
-    padding: 0px ${({ theme }) => theme.sizes.spaces.df}px;
+    padding: 0 ${({ theme }) => theme.sizes.spaces.df}px;
   }
 
   .thread__loading {
@@ -277,7 +307,7 @@ const Container = styled.div`
     flex: 1;
     height: 100%;
     overflow-y: auto;
-    padding 0 ${({ theme }) => theme.sizes.spaces.df}px;;
+    padding: 0 ${({ theme }) => theme.sizes.spaces.df}px;
   }
 `
 
