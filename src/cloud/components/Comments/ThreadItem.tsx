@@ -21,6 +21,7 @@ export type ThreadListItemProps = ThreadActionProps & {
   onSelect: (thread: Thread) => void
   users: SerializedUser[]
   updateComment: (comment: Comment, message: string) => Promise<any>
+  onCommentDelete: (comment: Comment) => Promise<any>
 }
 
 const smallUserIconStyle = { width: '28px', height: '28px', lineHeight: '26px' }
@@ -31,6 +32,7 @@ function ThreadItem({
   onDelete,
   updateComment,
   users,
+  onCommentDelete,
 }: ThreadListItemProps) {
   const { translate } = useI18n()
   const [editing, setEditing] = useState(false)
@@ -49,7 +51,7 @@ function ThreadItem({
   }, [reloadComments, thread.id])
 
   const showReplyForm = useCallback(() => {
-    if (threadComments == null || threadComments.length > 1) {
+    if (threadComments == null) {
       return
     }
 
@@ -72,12 +74,19 @@ function ThreadItem({
     [reloadComments, threadComments, updateComment]
   )
 
-  const onCommentDelete = useCallback(
-    (thread) => {
-      onDelete(thread)
+  const onThreadDelete = useCallback(
+    async (thread) => {
+      if (threadComments == null) {
+        return
+      }
+      if (threadComments.length > 1) {
+        await onCommentDelete(threadComments[0])
+      } else {
+        await onDelete(thread)
+      }
       reloadComments()
     },
-    [onDelete, reloadComments]
+    [onCommentDelete, onDelete, reloadComments, threadComments]
   )
 
   const threadCommentedUser = useMemo(() => {
@@ -171,7 +180,7 @@ function ThreadItem({
                 <Icon size={20} path={mdiPencil} />
               </div>
               <div
-                onClick={() => onCommentDelete(thread)}
+                onClick={() => onThreadDelete(thread)}
                 className='comment__meta__actions__remove'
               >
                 <Icon size={20} path={mdiTrashCanOutline} />

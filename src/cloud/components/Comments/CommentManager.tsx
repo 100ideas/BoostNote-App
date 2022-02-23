@@ -84,6 +84,7 @@ function CommentManager({
                 threads={state.threads}
                 onSelect={(thread) => setMode({ mode: 'thread', thread })}
                 onDelete={deleteThread}
+                onCommentDelete={deleteComment}
                 users={usersOrEmpty}
                 updateComment={updateComment}
               />

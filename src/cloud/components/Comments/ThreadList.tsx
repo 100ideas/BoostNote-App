@@ -11,6 +11,7 @@ import styled from '../../../design/lib/styled'
 interface ThreadListProps extends Omit<ThreadListItemProps, 'thread'> {
   threads: Thread[]
   updateComment: (comment: Comment, message: string) => Promise<any>
+  onCommentDelete: (comment: Comment) => Promise<any>
 }
 
 function ThreadList({
@@ -19,6 +20,7 @@ function ThreadList({
   onDelete,
   users,
   updateComment,
+  onCommentDelete,
 }: ThreadListProps) {
   const sorted = useMemo(() => {
     return sortBy((thread) => thread.lastCommentTime, threads).reverse()
@@ -37,6 +39,7 @@ function ThreadList({
             thread={thread}
             onSelect={onSelect}
             onDelete={onDelete}
+            onCommentDelete={onCommentDelete}
             users={users}
             updateComment={updateComment}
           />
