@@ -1,0 +1,7 @@
+{
+  "files.autoGuessEncoding": true,
+  "workbench.colorTheme": "Default Dark+",
+  "workbench.settings.editor": "json",
+  "merge-conflict.autoNavigateNextConflict.enabled": true,
+  "npm.enableRunFromFolder": true
+}
